@@ -89,13 +89,13 @@ if __name__ == "__main__":
     val_ds = val_ds.cache().shuffle(300).prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
 
     train_frames = frames_from_video_file(os.path.join(args.ground_truth_train_dir, 'scene_2007'), 
-                                        os.path.join(args.ground_truth_train_dir, 'scene_2007'),
+                                        os.path.join(args.tecogan_generated_train_dir, 'scene_2007'),
                                         args.sequence_length,
                                         (args.lr_height, args.lr_width),
                                         x1 = 25, x2 = 40, start = 0)[0]
 
     val_frames = frames_from_video_file(os.path.join(args.ground_truth_val_dir, 'scene_2003'), 
-                                        os.path.join(args.ground_truth_val_dir, 'scene_2003'),
+                                        os.path.join(args.tecogan_generated_val_dir, 'scene_2003'),
                                         args.sequence_length,
                                         (args.lr_height, args.lr_width),
                                         x1 = 45, x2 = 60, start = 6)[0]
