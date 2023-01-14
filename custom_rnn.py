@@ -3,9 +3,6 @@ from tensorflow import keras
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, SeparableConv2D, ReLU, Add, RNN, AbstractRNNCell
 from tensorflow.keras.activations import tanh
-from tensorflow.keras.losses import MeanAbsoluteError
-import tensorflow_wavelets.Layers.DWT.DWT as DWT
-from wandb_utils import log
 
 
 class CNNCell(AbstractRNNCell):
@@ -85,7 +82,7 @@ class CNNModel:
 
         x = tf.nn.depth_to_space(input = x, block_size = self.block_size)
 
-        outputs = tanh(x)
+        outputs = (tanh(x) + 1) / 2
 
         model = Model(inputs = inputs, outputs = outputs)
         
@@ -101,7 +98,6 @@ class CustomRNN:
         self.hr_height = args.hr_height
         self.hr_width = args.hr_width
         self.alpha = args.alpha
-        self.wavelet_layer = DWT.DWT(name = 'haar', concat = 0)
 
     def get_model(self):
         inputs = Input(shape = (self.sequence_length, self.lr_height, self.lr_width, 3))
@@ -110,39 +106,3 @@ class CustomRNN:
         model = Model(inputs = inputs, outputs = rnn)
 
         return model
-
-    def model_loss(self, y_true, y_pred):
-        ground_truth = y_true[0]
-        teacher_output = y_true[1]
-
-        student_loss = self.student_loss(ground_truth, y_pred)
-        distillation_loss = self.distillation_loss(teacher_output, y_pred)
-        log({'student_loss': student_loss, 'distillation_loss': distillation_loss})
-
-        return student_loss + self.alpha * distillation_loss
-
-    def student_loss(self, ground_truth, student_output):
-        return MeanAbsoluteError()(ground_truth, student_output)
-
-    def distillation_loss(self, teacher_output, student_output):
-        # teacher_output = teacher_output[:, 0, :, :, :]
-        # student_output = student_output[:, 0, :, :, :] # TODO Change to include all elements of the sequence
-
-        student_freqs1 = self.wavelet_layer(student_output)
-        teacher_freqs1 = self.wavelet_layer(teacher_output)
-        LL1_s = student_freqs1[:, :, :, 0]
-        LL1_t = teacher_freqs1[:, :, :, 0]
-
-        student_freqs2 = self.wavelet_layer(LL1_s)
-        teacher_freqs2 = self.wavelet_layer(LL1_t)
-        LL2_s = student_freqs2[:, :, :, 0]
-        LL2_t = teacher_freqs2[:, :, :, 0]
-
-        student_freqs3 = self.wavelet_layer(LL2_s)
-        teacher_freqs3 = self.wavelet_layer(LL2_t)
-
-        loss1 = MeanAbsoluteError()(student_freqs1[:, :, :, 1:], teacher_freqs1[:, :, :, 1:])
-        loss2 = MeanAbsoluteError()(student_freqs2[:, :, :, 1:], teacher_freqs2[:, :, :, 1:])
-        loss3 = MeanAbsoluteError()(student_freqs3[:, :, :, 1:], teacher_freqs3[:, :, :, 1:])
-
-        return loss1 + loss2 + loss3

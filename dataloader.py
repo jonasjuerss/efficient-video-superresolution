@@ -8,7 +8,7 @@ Based on: https://www.tensorflow.org/tutorials/load_data/video#create_frames_fro
 """
 
 def frames_from_video_file(folder_path_groundtruth: str, folder_path_generated: str,
-                           n_frames: int, output_size):
+                           n_frames: int, output_size, x1=None, x2=None, start=None):
     """
     Creates frames from each video file present for each category.
 
@@ -22,14 +22,13 @@ def frames_from_video_file(folder_path_groundtruth: str, folder_path_generated: 
       Note that height and width here might vary
     """
     files = sorted([os.path.basename(f) for f in os.listdir(folder_path_groundtruth)])
-    start = random.randint(0, len(files) - n_frames + 1)
+    if start is None:
+        start = random.randint(0, len(files) - n_frames)
 
     HR = []
     LR = []
     TECO = []
     for f in files[start: start + n_frames]:
-        print(f)
-        print(os.path.join(folder_path_groundtruth, f))
         img = cv2.imread(os.path.join(folder_path_groundtruth, f), 3).astype(np.float32)[:, : , ::-1]
         HR.append(img)
         icol_blur = cv2.GaussianBlur(img, (0, 0), sigmaX=1.5)
@@ -41,14 +40,26 @@ def frames_from_video_file(folder_path_groundtruth: str, folder_path_generated: 
     LR = np.stack(LR, axis=0)  # [n_frames, height // 4, width // 4, channels]
     TECO = np.stack(TECO, axis=0)  # [n_frames, height, width, channels]
 
-    x1 = random.randint(0, LR.shape[1] - output_size[0] + 1)
-    x2 = random.randint(0, LR.shape[2] - output_size[1] + 1)
+    if x1 is None:
+        x1 = random.randint(0, LR.shape[1] - output_size[0])
+    if x2 is None:
+        x2 = random.randint(0, LR.shape[2] - output_size[1])
 
     HR_cropped = HR[:, x1 * 4 : (x1 + output_size[0]) * 4, x2 * 4 : (x2 + output_size[1]) * 4, :]
     LR_cropped = LR[:, x1 : x1 + output_size[0], x2 : x2 + output_size[1], :]
     TECO_cropped = TECO[:, x1 * 4 : (x1 + output_size[0]) * 4, x2 * 4 : (x2 + output_size[1]) * 4, :]
 
-    return (HR_cropped / 255, TECO_cropped / 255), LR_cropped / 255
+    if LR_cropped.shape[1] < 32:
+        print('HR.shape: ', HR.shape)
+        print('LR.shape: ', LR.shape)
+        print('TECO.shape: ', TECO.shape)
+        print('x1: ', x1)
+        print('x2: ', x2)
+        print('HR_cropped.shape: ', HR_cropped.shape)
+        print('LR_cropped.shape: ', LR_cropped.shape)
+        print('TECO_cropped.shape: ', TECO_cropped.shape)
+
+    return LR_cropped / 255, HR_cropped / 255, TECO_cropped / 255
 
 
 class FrameGenerator:
