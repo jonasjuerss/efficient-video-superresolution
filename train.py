@@ -85,8 +85,8 @@ if __name__ == "__main__":
     val_ds_size = len(list(val_ds))
     AUTOTUNE = tf.data.AUTOTUNE
 
-    train_ds = train_ds.cache().shuffle(300).prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
-    val_ds = val_ds.cache().shuffle(300).prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
+    train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
+    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
 
     train_frames = frames_from_video_file(os.path.join(args.ground_truth_train_dir, 'scene_2007'), 
                                         os.path.join(args.tecogan_generated_train_dir, 'scene_2007'),
@@ -124,7 +124,10 @@ if __name__ == "__main__":
         if epoch % args.checkpoint_freqs == 0:
             path = os.path.join(args.checkpoint_dir, str(epoch))
             model.save(path)
-            wandb.save(path, policy="now")
+            try:
+                wandb.save(path, policy="now")
+            except:
+                print("Could not save checkpoint to wandb")
 
         # Validation
         student_loss_val, distillation_loss_val, mse, psnr, ssim = 0, 0, 0, 0, 0
