@@ -51,7 +51,7 @@ parser.add_argument('--alpha', type=float, default=1,
                     help='Weighting parameter for distillation loss.') # TODO Check default value for alpha
 parser.add_argument('--batch_size', type=int, default=4,
                     help='Batch size.')
-parser.add_argument('--epochs', type=int, default=1000,
+parser.add_argument('--epochs', type=int, default=1000000,
                     help='Epochs.')
 parser.add_argument('--initial_learning_rate', type=float, default=1e-4,
                     help='Initial learning rate.')
@@ -59,7 +59,7 @@ parser.add_argument('--decay_steps', type=int, default=50000,
                     help='Number of steps for exponential learning rate decay.')
 parser.add_argument('--decay_rate', type=float, default=0.5,
                     help='Rate of exponential learning rate decay.')
-parser.add_argument('--checkpoint_freqs', type=int, default=5,
+parser.add_argument('--checkpoint_freqs', type=int, default=20,
                     help='Epoch frequency for model checkpointing.')
 parser.add_argument('--checkpoint_dir', type=str, default='./checkpoints/',
                     help='Directory to save model checkpoints.')
@@ -88,11 +88,19 @@ if __name__ == "__main__":
     train_ds = train_ds.cache().shuffle(300).prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
     val_ds = val_ds.cache().shuffle(300).prefetch(buffer_size=AUTOTUNE).batch(args.batch_size)
 
-    val_frames = frames_from_video_file(os.path.join(args.ground_truth_train_dir, 'scene_2007'), 
+    train_frames = frames_from_video_file(os.path.join(args.ground_truth_train_dir, 'scene_2007'), 
                                         os.path.join(args.ground_truth_train_dir, 'scene_2007'),
                                         args.sequence_length,
                                         (args.lr_height, args.lr_width),
-                                        x1 = 40, x2 = 25, start = 0)[0][None, ...]
+                                        x1 = 25, x2 = 40, start = 0)[0]
+
+    val_frames = frames_from_video_file(os.path.join(args.ground_truth_val_dir, 'scene_2003'), 
+                                        os.path.join(args.ground_truth_val_dir, 'scene_2003'),
+                                        args.sequence_length,
+                                        (args.lr_height, args.lr_width),
+                                        x1 = 45, x2 = 60, start = 6)[0]
+
+    frames = np.stack((train_frames, val_frames), axis = 0)
 
     losses = Losses(args)
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(args.initial_learning_rate, args.decay_steps, args.decay_rate, staircase = False, name = None)
@@ -114,8 +122,7 @@ if __name__ == "__main__":
              'total_loss': total_loss_epoch / train_ds_size}, 
              step = epoch)
         if epoch % args.checkpoint_freqs == 0:
-            model.save(args.checkpoint_dir)
-    
+            model.save(os.path.join(args.checkpoint_dir, str(epoch)))
 
         # Validation
         student_loss_val, distillation_loss_val, mse, psnr, ssim = 0, 0, 0, 0, 0
@@ -138,5 +145,5 @@ if __name__ == "__main__":
              'ssim_val': ssim / val_ds_size}, 
              step = epoch)
 
-        train_image = np.moveaxis((model(val_frames).numpy() * 255).astype(np.uint8), -1, 2)
+        train_image = np.moveaxis((model(frames).numpy() * 255).astype(np.uint8), -1, 2)
         log({'train_image': wandb.Video(train_image)}, step = epoch)        
