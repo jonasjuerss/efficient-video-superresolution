@@ -122,7 +122,9 @@ if __name__ == "__main__":
              'total_loss': total_loss_epoch / train_ds_size}, 
              step = epoch)
         if epoch % args.checkpoint_freqs == 0:
-            model.save(os.path.join(args.checkpoint_dir, str(epoch)))
+            path = os.path.join(args.checkpoint_dir, str(epoch))
+            model.save(path)
+            wandb.save(path, policy="now")
 
         # Validation
         student_loss_val, distillation_loss_val, mse, psnr, ssim = 0, 0, 0, 0, 0

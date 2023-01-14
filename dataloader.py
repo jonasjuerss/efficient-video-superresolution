@@ -34,7 +34,7 @@ def frames_from_video_file(folder_path_groundtruth: str, folder_path_generated: 
         icol_blur = cv2.GaussianBlur(img, (0, 0), sigmaX=1.5)
         LR.append(icol_blur[::4, ::4, ::])
         print(os.path.join(folder_path_generated, f))
-        img = cv2.imread(os.path.join(folder_path_generated, f), 3).astype(np.float32)[:, :, ::-1]
+        img = cv2.imread(os.path.join(folder_path_generated, "output_" + f), 3).astype(np.float32)[:, :, ::-1]
         TECO.append(img)
 
     HR = np.stack(HR, axis=0)  # [n_frames, height, width, channels]
