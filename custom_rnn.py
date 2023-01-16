@@ -1,8 +1,11 @@
 import tensorflow as tf
+from keras.layers import Conv2D
 from tensorflow import keras
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Input, Conv2D, SeparableConv2D, ReLU, Add, RNN, AbstractRNNCell
+from tensorflow.keras.layers import Input, SeparableConv2D, ReLU, Add, RNN, AbstractRNNCell
 from tensorflow.keras.activations import tanh
+
+from ICNR import ICNR
 
 
 class CNNCell(AbstractRNNCell):
@@ -77,8 +80,12 @@ class CNNModel:
         for _ in range(self.num_res_blocks - 1):
             x = self.get_residual_block(x)
         
-        x = Conv2D(filters = 48, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(x)
-        # x = ReLU()(x)
+        x = Conv2D(filters = self.block_size * self.block_size * 3, kernel_size = (self.kernel_size, self.kernel_size),
+                   strides = (self.strides, self.strides),
+                   padding = self.padding,
+                   kernel_initializer=ICNR(self.block_size)
+                   )(x)
+        #x = ReLU()(x)
 
         x = tf.nn.depth_to_space(input = x, block_size = self.block_size)
 
