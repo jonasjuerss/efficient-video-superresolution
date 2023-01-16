@@ -23,7 +23,7 @@ parser.add_argument('--sequence_length', type=int, default=10,
                     help='The sequence length.')
 parser.add_argument('--num_res_blocks', type=int, default=16,
                     help='Number of residual blocks.')
-parser.add_argument('--num_filters', type=int, default=64,
+parser.add_argument('--num_filters', type=int, default=128,
                     help='The sequence length.')
 parser.add_argument('--kernel_size', type=int, default=3,
                     help='Kernel size.')

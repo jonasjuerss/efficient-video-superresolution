@@ -6,7 +6,7 @@ from wavetf import WaveTFFactory
 class Losses:
     def __init__(self, args):
         self.alpha = args.alpha
-        self.wavelet_layer = WaveTFFactory().build(kernel_type = 'db2', dim = 2)
+        self.wavelet_layer = WaveTFFactory().build(kernel_type = 'haar', dim = 2)
 
     @tf.function
     def train_step(self, model, x, ground_truth, teacher_output):
