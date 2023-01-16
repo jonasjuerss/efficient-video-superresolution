@@ -1,5 +1,4 @@
 import tensorflow as tf
-from keras.layers import Conv2D
 from tensorflow import keras
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, SeparableConv2D, ReLU, Add, RNN, AbstractRNNCell
@@ -35,7 +34,7 @@ class CNNCell(AbstractRNNCell):
 
         output = self.model(x)
 
-        return output, output
+        return output, [output]
 
 
 class CNNModel:
@@ -64,7 +63,7 @@ class CNNModel:
 
 
     def get_residual_block(self, input):
-        x = Conv2D(filters = self.num_filters, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(input) # TODO Change to DWS
+        x = SeparableConv2D(filters = self.num_filters, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(input) # TODO Change to DWS
         x = ReLU()(x)
         x = Add()([input, x])
         return x
@@ -72,14 +71,14 @@ class CNNModel:
     def get_model(self):
         inputs = Input(shape = (self.lr_height, self.lr_width, 3 + 3 * 4 * 4))
 
-        x = Conv2D(filters = self.num_filters, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(inputs)
+        x = SeparableConv2D(filters = self.num_filters, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(inputs)
         x = ReLU()(x)
 
         for _ in range(self.num_res_blocks - 1):
             x = self.get_residual_block(x)
         
-        x = Conv2D(filters = 48, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(x)
-        x = ReLU()(x)
+        x = SeparableConv2D(filters = 48, kernel_size = (self.kernel_size, self.kernel_size), strides = (self.strides, self.strides), padding = self.padding)(x)
+        # x = ReLU()(x)
 
         x = tf.nn.depth_to_space(input = x, block_size = self.block_size)
 
